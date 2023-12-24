@@ -21,12 +21,12 @@ namespace APIStart.Controllers
         public IActionResult GetAll()
         {
             List<CategoryGetDto> categoryGetDtos = new List<CategoryGetDto>();
-            foreach (var book in _context.Books)
+            foreach (var category in _context.Categories)
             {
                 CategoryGetDto categoryGet = new CategoryGetDto()
                 {
-                    Id = book.Id,
-                    Name = book.Name,
+                    Id = category.Id,
+                    Name = category.Name,
                     
                 };
                 categoryGetDtos.Add(categoryGet);
