@@ -48,7 +48,7 @@ namespace APIStart.Business.Services.Implementations
             {
                 foreach (int professionId in employeeCreateDto.ProfessionIds)
                 {
-                    if (!_context.ProfessionEmployees.Any(profession => profession.Id == professionId))
+                    if (!_context.Professions.Any(profession => profession.Id == professionId))
                     {
                         check = true;
                         break;
@@ -147,8 +147,16 @@ namespace APIStart.Business.Services.Implementations
                     }
                 }
             }
+            List<EmployeeGetDto> employeeGetDtos =  new  List<EmployeeGetDto>();
+            foreach (var worker in workers)
+            {
+                
+                EmployeeGetDto employeeGetDto = _mapper.Map<EmployeeGetDto>(worker);
+                employeeGetDto.ProfessionIds = worker.Professions.Select(p => p.ProfessionId).ToList();
+                employeeGetDtos.Add(employeeGetDto);
+            }
 
-            IEnumerable<EmployeeGetDto> employeeGetDtos = workers.Select(worker => new EmployeeGetDto {  FullName = worker.FullName, Description = worker.Description, ImageUrl = worker.ImageUrl, Salary = worker.Salary });
+        
 
             return employeeGetDtos;
         }
@@ -156,11 +164,13 @@ namespace APIStart.Business.Services.Implementations
         public async Task<EmployeeGetDto> GetByIdAsync(int id)
         {
 
-            Employee employee = await _employeeRepository.GetByIdAsync(employee => employee.Id == id && employee.IsDeleted == false);
+            Employee employee = await _employeeRepository.GetByIdAsync(employee => employee.Id == id && employee.IsDeleted == false ,"Professions");
 
             if (employee == null) throw new NotFound("worker couldn't be null!");
+            
 
             EmployeeGetDto employeeGetDto = _mapper.Map<EmployeeGetDto>(employee);
+            employeeGetDto.ProfessionIds=employee.Professions.Select(p => p.ProfessionId).ToList();
 
             return employeeGetDto;
         }

@@ -15,6 +15,7 @@ namespace APIStart.Core.DTOs.EmployeeModelDTOs
         public string LinkLink { get; set; }
         public IFormFile Image { get; set; }
         public List<int> ProfessionIds { get; set; }
+        public double Salary { get; set; }
         public Status Status { get; set; }
 
 

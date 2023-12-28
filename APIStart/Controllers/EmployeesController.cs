@@ -46,10 +46,10 @@ namespace APIStart.Controllers
 
 
         [HttpGet("")]
-        public async Task<IActionResult> GetAll(string? input, int? professionId, int? orderId)
+        public async Task<IActionResult> GetAll(string? search, int? professionId, int? orderId)
         {
 
-            IEnumerable<EmployeeGetDto> workerGetDtos = await _employeeService.GetAllAsync(input, professionId, orderId);
+            IEnumerable<EmployeeGetDto> workerGetDtos = await _employeeService.GetAllAsync(search, professionId, orderId);
 
             return Ok(workerGetDtos);
         }
