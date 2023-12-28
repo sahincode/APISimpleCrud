@@ -24,19 +24,19 @@ namespace APIStart.Business.Services.Implementations
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IEmployeeProfessionRepository _workerProfessionRepository;
-        private readonly AppDbContext _context;
+        private readonly IProfessionRepository _professionRepository;
 
         public EmployeeService(IEmployeeRepository employeeRepository,
                                 IMapper mapper,
                                 IWebHostEnvironment webHostEnvironment,
                                 IEmployeeProfessionRepository workerProfessionRepository,
-                                AppDbContext context)
+                               IProfessionRepository professionRepository)
         {
             _employeeRepository = employeeRepository;
             _mapper = mapper;
             _webHostEnvironment = webHostEnvironment;
             _workerProfessionRepository = workerProfessionRepository;
-            _context = context;
+            this._professionRepository = professionRepository;
         }
 
         public async Task CreateAsync([FromForm] EmployeeCreateDto employeeCreateDto)
@@ -46,9 +46,9 @@ namespace APIStart.Business.Services.Implementations
 
             if (employeeCreateDto.ProfessionIds != null)
             {
-                foreach (int professionId in employeeCreateDto.ProfessionIds)
+                foreach (int professionId in  employeeCreateDto.ProfessionIds)
                 {
-                    if (!_context.Professions.Any(profession => profession.Id == professionId))
+                    if (!_professionRepository.Table.Any(profession => profession.Id == professionId))
                     {
                         check = true;
                         break;
