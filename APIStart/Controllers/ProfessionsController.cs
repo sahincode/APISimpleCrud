@@ -1,7 +1,8 @@
-﻿using APIStart.data;
-using APIStart.DTOs.CategoryModelDTOs;
-using APIStart.DTOs.ProfessionModelDTOs;
-using APIStart.Entities;
+﻿using APIStart.Business.Exceptions.FormatExceptions;
+using APIStart.Business.Services;
+using APIStart.Core.DTOs.ProfessionModelDTOs;
+using APIStart.Core.Entities;
+using APIStart.Data.DAL;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,90 +14,89 @@ namespace APIStart.Controllers
     [ApiController]
     public class ProfessionsController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
-
-        public ProfessionsController(AppDbContext context ,IMapper mapper)
+        private readonly IProfessionService _professionService;
+        public ProfessionsController(IProfessionService professionService)
         {
-            this._context = context;
-            this._mapper = mapper;
+            _professionService = professionService;
         }
-        [HttpGet]
-        public IActionResult GetAll()
-        {
-            List<ProfessionGetDto> professionGetDtos= new List<ProfessionGetDto>();
-            foreach (var profession in _context.Professions)
-            {
-                ProfessionGetDto professionGetDto = _mapper.Map<ProfessionGetDto>(profession);
 
-
-                professionGetDtos.Add(professionGetDto);
-            }
-            return Ok(professionGetDtos);
-        }
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetOne(int id)
         {
-            Profession profession= _context.Professions.FirstOrDefault(b => b.Id == id);
-            if (profession == null) return NotFound();
-            ProfessionGetDto professionGetDto = _mapper.Map<ProfessionGetDto>(profession);
+            if (id == null && id <= 0) return NotFound();
+            ProfessionGetDto professionGetDto = null;
+
+            try
+            {
+                professionGetDto = await _professionService.GetByIdAsync(id);
+            }
+            catch (NotFound ex)
+            {
+                return NotFound(ex.Message);
+            }
+
+
             return Ok(professionGetDto);
         }
-        [HttpPost]
-        public IActionResult Create(ProfessionCreateDto professionCreateDto)
+
+
+        [HttpGet("")]
+        public async Task<IActionResult> GetAll()
         {
-            if (_context.Professions.Any(p => p.Name == professionCreateDto.Name))
+
+            IEnumerable<ProfessionGetDto> professionGetDtos = await _professionService.GetAllAsync();
+
+            return Ok(professionGetDtos);
+        }
+
+        [HttpPost("")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<IActionResult> Create([FromForm] ProfessionCreateDto professionCreateDto)
+        {
+
+            await _professionService.CreateAsync(professionCreateDto);
+
+            return StatusCode(201, new { message = "Object yaradildi" });
+        }
+
+        [HttpPut("")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> Update(int ?id ,[FromForm] ProfessionUpdateDto professionUpdateDto)
+        {
+            try
             {
-                return StatusCode(409, "This Profession already exist");
+                await _professionService.UpdateAsync(  id,professionUpdateDto);
             }
-            Profession profession = _mapper.Map<Profession>(professionCreateDto);
-            profession.CreationTime = DateTime.UtcNow.AddHours(4);
-            profession.UpdateTime = DateTime.UtcNow.AddHours(4);
-
-            _context.Professions.Add(profession);
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Created" });
-
-
-        }
-        [HttpPut("update/{id}")]
-        public IActionResult Update(int id, ProfessionUpdateDto professionUpdateDto)
-        {
-           
-            Profession profession = _context.Professions.FirstOrDefault(b => b.Id == id);
-            if (profession == null) return NotFound();
-            if (_context.Professions.Any(p => p.Name == professionUpdateDto.Name && p.Id != id))
+            catch (NotFound ex)
             {
-                return StatusCode(409, "This Profession already exis");
+                return NotFound(ex.Message);
             }
-            profession.Name = professionUpdateDto.Name;
 
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Updated" });
-
-
+            return NoContent();
         }
-        [HttpDelete]
-        public IActionResult Delete(int id)
+
+        [HttpDelete("/professions/toggleDelete/{id}")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> ToggleDelete(int id)
         {
-            Profession profession = _context.Professions.FirstOrDefault(b => b.Id == id);
-            if (profession == null) return NotFound();
-            _context.Professions.Remove(profession);
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Deleted" });
 
+            if (id == null && id <= 0) return NotFound();
 
-        }
-        [HttpPut("{id}")]
-        public IActionResult SoftDelete(int id)
-        {
-            Profession profession = _context.Professions.FirstOrDefault(b => b.Id == id);
-            if (profession == null) return NotFound();
-            profession.IsDeleted = true;
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Softy deleted" });
+            try
+            {
 
+                await _professionService.ToggleDelete(id);
+            }
+            catch (NotFound ex)
+            {
+                return NotFound(ex.Message);
+            }
 
+            return NoContent();
         }
     }
 }

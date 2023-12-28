@@ -1,13 +1,14 @@
-﻿using APIStart.InternalHelperServices;
-using APIStart.data;
-using APIStart.DTOs.BookModelDTOs;
-using APIStart.DTOs.EmployeeModelDTOs;
-using APIStart.Entities;
+﻿using APIStart.Business.Exceptions.FormatExceptions;
 using AutoMapper;
-using APIStart.Exceptions.FormatExceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using APIStart.Data.DAL;
+using APIStart.Core.DTOs.EmployeeModelDTOs;
+using APIStart.Core.Entities;
+using APIStart.Business.InternalHelperServices;
+
+using APIStart.Business.Services;
 
 namespace APIStart.Controllers
 {
@@ -15,117 +16,112 @@ namespace APIStart.Controllers
     [ApiController]
     public class EmployeesController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
-        public string passPath = "employee";
-        private readonly IWebHostEnvironment _environment;
-        public EmployeesController(AppDbContext context ,IMapper mapper ,IWebHostEnvironment environment)
+        private readonly IEmployeeService _employeeService;
+        public EmployeesController(IEmployeeService employeeService)
         {
-            this._context = context;
-            this._mapper = mapper;
-            this._environment = environment;
+            _employeeService = employeeService;
         }
-        [HttpGet]
-        public IActionResult GetAll()
-        {
-            List<EmployeeGetDto> bookGetModels = new List<EmployeeGetDto>();
-            foreach (var employee in _context.Employees)
-            {
-                var bookGetModel = _mapper.Map<EmployeeGetDto>(employee);
-                bookGetModels.Add(bookGetModel);
-            }
-            return Ok(bookGetModels);
-        }
+
+
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetOne(int id)
         {
-            Employee employee = _context.Employees.FirstOrDefault(b => b.Id == id);
-            if (employee == null) return NotFound();
-            var employeeGetModelDto = _mapper.Map<EmployeeGetDto>(employee);
 
-
-            return Ok(employeeGetModelDto);
-        }
-        [HttpPost]
-        public async Task< IActionResult> Create([FromForm]EmployeeCreateDto employeeCreateModel)
-        {
-            
-            if (!_context.Professions.Any(c => c.Id == employeeCreateModel.ProfessionId))
+            if (id == null && id <= 0) return NotFound();
+            EmployeeGetDto employeeGetDto = null;
+            try
             {
-                return StatusCode(404, new { message = "Category whisch id is equal to this not found" });
-            }
-            if (employeeCreateModel.Image.ContentType != "image/png" && employeeCreateModel.Image.ContentType != "image/jpeg")
-                throw new FileFormatException("Image", "please add png or jpeg file");
-            
-            string rootPath = _environment.WebRootPath;
-          
-            
-            var employee =_mapper.Map<Employee>(employeeCreateModel);
-            employee.ImageUrl = await FileHelper.SaveImage(rootPath, passPath, employeeCreateModel.Image);
-
-            employee.CreationTime = DateTime.UtcNow.AddHours(4);
-            employee.UpdateTime = DateTime.UtcNow.AddHours(4);
-
-            _context.Employees.Add(employee);
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Created" });
-
-
-        }
-        [HttpPut("update/{id}")]
-        public async Task < IActionResult> Update(int id, [FromForm]EmployeeUpdateDto employeeUpdateModel)
-        {
-            string rootPath = _environment.WebRootPath;
-            Employee employee = _context.Employees.FirstOrDefault(b => b.Id == id);
-            if (employee == null) return NotFound();
-            if (employeeUpdateModel.Image != null)
-            {
-                System.IO.File.Delete(Path.Combine(rootPath ,passPath ,employee.ImageUrl));
-                if (employeeUpdateModel.Image.ContentType != "image/png" && employeeUpdateModel.Image.ContentType != "image/jpeg")
-                    throw new FileFormatException("Image", "please add png or jpeg file");
-                employee.ImageUrl = await FileHelper.SaveImage(rootPath, passPath, employeeUpdateModel.Image);
-
+                employeeGetDto = await _employeeService.GetByIdAsync(id);
 
             }
-            employee.FullName = employeeUpdateModel.FullName;
-            employee.LinkEdn = employeeUpdateModel.LinkEdn;
-            employee.FaceLink = employeeUpdateModel.FaceLink;
-            employee.InstaLink = employeeUpdateModel.InstaLink;
-            employee.TwitLink = employeeUpdateModel.TwitLink;
-            employee.Description = employeeUpdateModel.Description;
+            catch (NotFound ex)
+            {
+                return NotFound(ex.Message);
+            }
 
 
-
-            employee.ProfessionId = employeeUpdateModel.ProfessionId;
-            employee.UpdateTime = DateTime.UtcNow.AddHours(4);
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Updated" });
-
-
+            return Ok(employeeGetDto);
         }
-        [HttpDelete]
-        public IActionResult Delete(int id)
+
+
+        [HttpGet("")]
+        public async Task<IActionResult> GetAll(string? input, int? professionId, int? orderId)
         {
-            string rootPath = _environment.WebRootPath;
-            Employee employee = _context.Employees.FirstOrDefault(b => b.Id == id);
-            if (employee == null) return NotFound();
-            System.IO.File.Delete(Path.Combine(rootPath, passPath, employee.ImageUrl));
-            _context.Employees.Remove(employee);
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Deleted" });
 
+            IEnumerable<EmployeeGetDto> workerGetDtos = await _employeeService.GetAllAsync(input, professionId, orderId);
 
+            return Ok(workerGetDtos);
         }
-        [HttpPut("{id}")]
-        public async Task< IActionResult> SoftDelete(int id)
+
+        [HttpPost("")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<IActionResult> Create([FromForm] EmployeeCreateDto employeeCreateDto)
         {
-            Employee employee =  await _context.Employees.FirstOrDefaultAsync(b => b.Id == id);
-            if (employee == null) return NotFound();
-            employee.IsDeleted = true;
-            _context.SaveChanges();
-            return StatusCode(201, new { message = "Softy deleted" });
+            try
+            {
 
+                await _employeeService.CreateAsync(employeeCreateDto);
+            }
+            catch (InvalidImageContentTypeOrSize ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidImage ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotFound ex)
+            {
+                return NotFound(ex.Message);
+            }
 
+            return StatusCode(201, new { message = "Object yaradildi" });
+        }
+        [HttpPut("")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> Update(int id ,[FromForm] EmployeeUpdateDto employeeUpdateDto)
+        {
+            try
+            {
+
+                await _employeeService.UpdateAsync(id ,employeeUpdateDto);
+            }
+            catch (InvalidImageContentTypeOrSize ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NotFound ex)
+            {
+                return NotFound(ex.Message);
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete("/workers/toggleDelete/{id}")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> ToggleDelete(int id)
+        {
+
+            if (id == null && id <= 0) return NotFound();
+
+            try
+            {
+
+                await _employeeService.ToggleDelete(id);
+            }
+            catch (NotFound ex)
+            {
+                return NotFound(ex.Message);
+            }
+
+            return NoContent();
         }
     }
 }

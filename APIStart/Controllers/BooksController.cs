@@ -1,6 +1,7 @@
-﻿using APIStart.data;
-using APIStart.DTOs.BookModelDTOs;
-using APIStart.Entities;
+﻿
+using APIStart.Core.DTOs.BookModelDTOs;
+using APIStart.Core.Entities;
+using APIStart.Data.DAL;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Query;

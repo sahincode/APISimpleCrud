@@ -1,9 +1,9 @@
-﻿using APIStart.Core.Entities;
-
+﻿
+using APIStart.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace APIStart.Configurations
+namespace APIStart.Data.Configurations
 {
     public class ProfessionConfiguration : IEntityTypeConfiguration<Profession>
     {

@@ -1,7 +1,7 @@
-﻿using APIStart.DTOs.CategoryModelDTOs;
-using APIStart.DTOs.EmployeeModelDTOs;
-using APIStart.DTOs.ProfessionModelDTOs;
-using APIStart.Entities;
+﻿using APIStart.Core.DTOs.EmployeeModelDTOs;
+using APIStart.Core.DTOs.ProfessionModelDTOs;
+using APIStart.Core.Entities;
+
 using AutoMapper;
 
 namespace APIStart.MappingProfiles

@@ -1,9 +1,9 @@
-﻿using APIStart.Core.Entities;
-
+﻿
+using APIStart.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace APIStart.Configurations
+namespace APIStart.Data.Configurations
 {
     public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
     {
@@ -24,7 +24,8 @@ namespace APIStart.Configurations
                           IsRequired().HasMaxLength(100);
             builder.Property(e => e.LinkLink).
                           IsRequired().HasMaxLength(100);
-         
+           
+
 
         }
     }
